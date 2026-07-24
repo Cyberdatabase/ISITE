@@ -1,0 +1,19 @@
+OFFICIAL WEBSITES
+
+
+  
+https://forums.raspberrypi.com/viewtopic.php?t=116055
+
+
+
+
+Program 2 (GPIO Bit-Banging)
+No SPI peripheral
+Three GPIOs:
+GPIO17 → CS
+GPIO27 → SCLK
+GPIO22 → DIN
+Generates exactly 16 clock pulses
+Adjustable clock speed (e.g., 1 Hz, 10 Hz, 100 Hz)
+Easy to observe on a CRO
+Produces a truly continuous 16-bit stream because your code controls each bit
