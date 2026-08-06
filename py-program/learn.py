@@ -626,7 +626,309 @@ That is the ADC result.
 
 # Part 10: Why do we use bitwise operators?
 
-The ADC doesn't return a normal decimal number. It returns **individual bits** packed into bytes.
+The ADC doesn't return a normal decimal number. It returns **individual bits**Let's calculate this step by step. This is the most important concept in understanding ADCs.
+
+We have:
+
+* ADC resolution = **12 bits**
+* Reference voltage (VA) = **5 V**
+* Input voltage (IN0) = **2.5 V**
+
+The formula is:
+
+[
+ADC\ Value=\frac{V_{IN}}{V_{REF}}\times(2^{bits}-1)
+]
+
+For ADC128S102:
+
+[
+2^{12}-1=4095
+]
+
+So:
+
+[
+ADC=\frac{2.5}{5}\times4095
+]
+
+---
+
+## Step 1: Voltage ratio
+
+Input voltage:
+
+```
+VIN = 2.5V
+```
+
+Reference:
+
+```
+VREF = 5V
+```
+
+Ratio:
+
+[
+\frac{2.5}{5}=0.5
+]
+
+Meaning:
+
+**2.5V is exactly half of 5V.**
+
+The ADC range is:
+
+```
+0V ------------------- 5V
+0                     4095
+```
+
+Halfway:
+
+```
+0V --------2.5V--------5V
+0          ?           4095
+```
+
+So the digital value should be half of 4095.
+
+---
+
+## Step 2: Multiply by maximum ADC value
+
+[
+ADC=0.5\times4095
+]
+
+[
+ADC=2047.5
+]
+
+Since ADC output must be an integer:
+
+```
+ADC = 2047
+```
+
+(or sometimes rounded to 2048)
+
+---
+
+# Now how does 2047 become:
+
+```
+0111 1111 1111
+```
+
+We convert decimal 2047 to binary.
+
+A 12-bit ADC has:
+
+```
+Bit position:
+
+Bit 11 Bit 10 Bit 9 Bit 8 Bit 7 Bit 6 Bit 5 Bit 4 Bit 3 Bit 2 Bit 1 Bit 0
+
+ 2048   1024    512   256   128   64    32    16    8     4    2    1
+```
+
+Each bit represents a value.
+
+---
+
+Now check 2047.
+
+Start from the biggest bit:
+
+| Bit    | Value | Use it? | Remaining |
+| ------ | ----: | ------- | --------: |
+| Bit 11 |  2048 | No      |      2047 |
+| Bit 10 |  1024 | Yes     |      1023 |
+| Bit 9  |   512 | Yes     |       511 |
+| Bit 8  |   256 | Yes     |       255 |
+| Bit 7  |   128 | Yes     |       127 |
+| Bit 6  |    64 | Yes     |        63 |
+| Bit 5  |    32 | Yes     |        31 |
+| Bit 4  |    16 | Yes     |        15 |
+| Bit 3  |     8 | Yes     |         7 |
+| Bit 2  |     4 | Yes     |         3 |
+| Bit 1  |     2 | Yes     |         1 |
+| Bit 0  |     1 | Yes     |         0 |
+
+So the bits are:
+
+```
+Bit11 Bit10 Bit9 Bit8 Bit7 Bit6 Bit5 Bit4 Bit3 Bit2 Bit1 Bit0
+
+  0     1    1    1    1    1    1    1    1    1    1    1
+```
+
+Therefore:
+
+```
+2047 decimal
+
+=
+
+011111111111 binary
+```
+
+or grouped:
+
+```
+0111 1111 1111
+```
+
+---
+
+# Compare with the maximum ADC value
+
+Maximum ADC output:
+
+```
+4095
+```
+
+Binary:
+
+```
+1111 1111 1111
+```
+
+This represents:
+
+```
+5V
+```
+
+---
+
+Half scale:
+
+```
+2047
+
+0111 1111 1111
+```
+
+represents:
+
+```
+2.5V
+```
+
+---
+
+Zero scale:
+
+```
+0
+
+0000 0000 0000
+```
+
+represents:
+
+```
+0V
+```
+
+---
+
+So the complete ADC scale is:
+
+```
+Voltage             ADC Value          Binary
+
+0V                  0                  0000 0000 0000
+
+1.25V               1023               0011 1111 1111
+
+2.5V                2047               0111 1111 1111
+
+3.75V               3071               1011 1111 1111
+
+5V                  4095               1111 1111 1111
+```
+
+---
+
+## Relating this to your Python code
+
+When ADC returns:
+
+```python
+value = 2047
+```
+
+The Raspberry Pi stores it as a normal integer.
+
+But inside the ADC, the data is actually:
+
+```
+011111111111
+```
+
+Your code:
+
+```python
+value = ((rx[0] & 0x0F) << 8) | rx[1]
+```
+
+is taking the two received bytes and rebuilding this:
+
+```
+0111 1111 1111
+```
+
+back into:
+
+```
+2047
+```
+
+So the process is:
+
+```
+Analog voltage
+      |
+      |
+      V
+ADC128S102 conversion
+
+2.5V
+
+      |
+      V
+
+Binary result
+
+0111 1111 1111
+
+      |
+      V
+
+SPI sends two bytes
+
+0111 1111 1111
+
+      |
+      V
+
+Python combines bytes
+
+      |
+      V
+
+Decimal value
+
+2047
+```
+
+This voltage → binary → SPI → Python conversion chain is the core idea behind every ADC system.
+ packed into bytes.
 
 Bitwise operators let us unpack those bits.
 
@@ -643,7 +945,309 @@ These are fundamental tools when working with SPI, I²C registers, microcontroll
 
 ## My suggestion for learning
 
-To build a strong foundation, learn these topics in this order:
+To build a strong foundation, learn these topics in this order:Let's calculate this step by step. This is the most important concept in understanding ADCs.
+
+We have:
+
+* ADC resolution = **12 bits**
+* Reference voltage (VA) = **5 V**
+* Input voltage (IN0) = **2.5 V**
+
+The formula is:
+
+[
+ADC\ Value=\frac{V_{IN}}{V_{REF}}\times(2^{bits}-1)
+]
+
+For ADC128S102:
+
+[
+2^{12}-1=4095
+]
+
+So:
+
+[
+ADC=\frac{2.5}{5}\times4095
+]
+
+---
+
+## Step 1: Voltage ratio
+
+Input voltage:
+
+```
+VIN = 2.5V
+```
+
+Reference:
+
+```
+VREF = 5V
+```
+
+Ratio:
+
+[
+\frac{2.5}{5}=0.5
+]
+
+Meaning:
+
+**2.5V is exactly half of 5V.**
+
+The ADC range is:
+
+```
+0V ------------------- 5V
+0                     4095
+```
+
+Halfway:
+
+```
+0V --------2.5V--------5V
+0          ?           4095
+```
+
+So the digital value should be half of 4095.
+
+---
+
+## Step 2: Multiply by maximum ADC value
+
+[
+ADC=0.5\times4095
+]
+
+[
+ADC=2047.5
+]
+
+Since ADC output must be an integer:
+
+```
+ADC = 2047
+```
+
+(or sometimes rounded to 2048)
+
+---
+
+# Now how does 2047 become:
+
+```
+0111 1111 1111
+```
+
+We convert decimal 2047 to binary.
+
+A 12-bit ADC has:
+
+```
+Bit position:
+
+Bit 11 Bit 10 Bit 9 Bit 8 Bit 7 Bit 6 Bit 5 Bit 4 Bit 3 Bit 2 Bit 1 Bit 0
+
+ 2048   1024    512   256   128   64    32    16    8     4    2    1
+```
+
+Each bit represents a value.
+
+---
+
+Now check 2047.
+
+Start from the biggest bit:
+
+| Bit    | Value | Use it? | Remaining |
+| ------ | ----: | ------- | --------: |
+| Bit 11 |  2048 | No      |      2047 |
+| Bit 10 |  1024 | Yes     |      1023 |
+| Bit 9  |   512 | Yes     |       511 |
+| Bit 8  |   256 | Yes     |       255 |
+| Bit 7  |   128 | Yes     |       127 |
+| Bit 6  |    64 | Yes     |        63 |
+| Bit 5  |    32 | Yes     |        31 |
+| Bit 4  |    16 | Yes     |        15 |
+| Bit 3  |     8 | Yes     |         7 |
+| Bit 2  |     4 | Yes     |         3 |
+| Bit 1  |     2 | Yes     |         1 |
+| Bit 0  |     1 | Yes     |         0 |
+
+So the bits are:
+
+```
+Bit11 Bit10 Bit9 Bit8 Bit7 Bit6 Bit5 Bit4 Bit3 Bit2 Bit1 Bit0
+
+  0     1    1    1    1    1    1    1    1    1    1    1
+```
+
+Therefore:
+
+```
+2047 decimal
+
+=
+
+011111111111 binary
+```
+
+or grouped:
+
+```
+0111 1111 1111
+```
+
+---
+
+# Compare with the maximum ADC value
+
+Maximum ADC output:
+
+```
+4095
+```
+
+Binary:
+
+```
+1111 1111 1111
+```
+
+This represents:
+
+```
+5V
+```
+
+---
+
+Half scale:
+
+```
+2047
+
+0111 1111 1111
+```
+
+represents:
+
+```
+2.5V
+```
+
+---
+
+Zero scale:
+
+```
+0
+
+0000 0000 0000
+```
+
+represents:
+
+```
+0V
+```
+
+---
+
+So the complete ADC scale is:
+
+```
+Voltage             ADC Value          Binary
+
+0V                  0                  0000 0000 0000
+
+1.25V               1023               0011 1111 1111
+
+2.5V                2047               0111 1111 1111
+
+3.75V               3071               1011 1111 1111
+
+5V                  4095               1111 1111 1111
+```
+
+---
+
+## Relating this to your Python code
+
+When ADC returns:
+
+```python
+value = 2047
+```
+
+The Raspberry Pi stores it as a normal integer.
+
+But inside the ADC, the data is actually:
+
+```
+011111111111
+```
+
+Your code:
+
+```python
+value = ((rx[0] & 0x0F) << 8) | rx[1]
+```
+
+is taking the two received bytes and rebuilding this:
+
+```
+0111 1111 1111
+```
+
+back into:
+
+```
+2047
+```
+
+So the process is:
+
+```
+Analog voltage
+      |
+      |
+      V
+ADC128S102 conversion
+
+2.5V
+
+      |
+      V
+
+Binary result
+
+0111 1111 1111
+
+      |
+      V
+
+SPI sends two bytes
+
+0111 1111 1111
+
+      |
+      V
+
+Python combines bytes
+
+      |
+      V
+
+Decimal value
+
+2047
+```
+
+This voltage → binary → SPI → Python conversion chain is the core idea behind every ADC system.
+
 
 1. **Binary numbers** (decimal ↔ binary conversion).
 2. **Bitwise operators**: `&`, `|`, `^`, `~`, `<<`, `>>`.
@@ -652,3 +1256,308 @@ To build a strong foundation, learn these topics in this order:
 5. **ADC128S102 timing diagram**: understand exactly how the 16 transmitted bits and 16 received bits align during a conversion.
 
 Once you're comfortable with these, the `read_adc()` function will become much easier to understand because you'll know why every bit is placed where it is.
+
+
+
+Let's calculate this step by step. This is the most important concept in understanding ADCs.
+
+We have:
+
+* ADC resolution = **12 bits**
+* Reference voltage (VA) = **5 V**
+* Input voltage (IN0) = **2.5 V**
+
+The formula is:
+
+[
+ADC\ Value=\frac{V_{IN}}{V_{REF}}\times(2^{bits}-1)
+]
+
+For ADC128S102:
+
+[
+2^{12}-1=4095
+]
+
+So:
+
+[
+ADC=\frac{2.5}{5}\times4095
+]
+
+---
+
+## Step 1: Voltage ratio
+
+Input voltage:
+
+```
+VIN = 2.5V
+```
+
+Reference:
+
+```
+VREF = 5V
+```
+
+Ratio:
+
+[
+\frac{2.5}{5}=0.5
+]
+
+Meaning:
+
+**2.5V is exactly half of 5V.**
+
+The ADC range is:
+
+```
+0V ------------------- 5V
+0                     4095
+```
+
+Halfway:
+
+```
+0V --------2.5V--------5V
+0          ?           4095
+```
+
+So the digital value should be half of 4095.
+
+---
+
+## Step 2: Multiply by maximum ADC value
+
+[
+ADC=0.5\times4095
+]
+
+[
+ADC=2047.5
+]
+
+Since ADC output must be an integer:
+
+```
+ADC = 2047
+```
+
+(or sometimes rounded to 2048)
+
+---
+
+# Now how does 2047 become:
+
+```
+0111 1111 1111
+```
+
+We convert decimal 2047 to binary.
+
+A 12-bit ADC has:
+
+```
+Bit position:
+
+Bit 11 Bit 10 Bit 9 Bit 8 Bit 7 Bit 6 Bit 5 Bit 4 Bit 3 Bit 2 Bit 1 Bit 0
+
+ 2048   1024    512   256   128   64    32    16    8     4    2    1
+```
+
+Each bit represents a value.
+
+---
+
+Now check 2047.
+
+Start from the biggest bit:
+
+| Bit    | Value | Use it? | Remaining |
+| ------ | ----: | ------- | --------: |
+| Bit 11 |  2048 | No      |      2047 |
+| Bit 10 |  1024 | Yes     |      1023 |
+| Bit 9  |   512 | Yes     |       511 |
+| Bit 8  |   256 | Yes     |       255 |
+| Bit 7  |   128 | Yes     |       127 |
+| Bit 6  |    64 | Yes     |        63 |
+| Bit 5  |    32 | Yes     |        31 |
+| Bit 4  |    16 | Yes     |        15 |
+| Bit 3  |     8 | Yes     |         7 |
+| Bit 2  |     4 | Yes     |         3 |
+| Bit 1  |     2 | Yes     |         1 |
+| Bit 0  |     1 | Yes     |         0 |
+
+So the bits are:
+
+```
+Bit11 Bit10 Bit9 Bit8 Bit7 Bit6 Bit5 Bit4 Bit3 Bit2 Bit1 Bit0
+
+  0     1    1    1    1    1    1    1    1    1    1    1
+```
+
+Therefore:
+
+```
+2047 decimal
+
+=
+
+011111111111 binary
+```
+
+or grouped:
+
+```
+0111 1111 1111
+```
+
+---
+
+# Compare with the maximum ADC value
+
+Maximum ADC output:
+
+```
+4095
+```
+
+Binary:
+
+```
+1111 1111 1111
+```
+
+This represents:
+
+```
+5V
+```
+
+---
+
+Half scale:
+
+```
+2047
+
+0111 1111 1111
+```
+
+represents:
+
+```
+2.5V
+```
+
+---
+
+Zero scale:
+
+```
+0
+
+0000 0000 0000
+```
+
+represents:
+
+```
+0V
+```
+
+---
+
+So the complete ADC scale is:
+
+```
+Voltage             ADC Value          Binary
+
+0V                  0                  0000 0000 0000
+
+1.25V               1023               0011 1111 1111
+
+2.5V                2047               0111 1111 1111
+
+3.75V               3071               1011 1111 1111
+
+5V                  4095               1111 1111 1111
+```
+
+---
+
+## Relating this to your Python code
+
+When ADC returns:
+
+```python
+value = 2047
+```
+
+The Raspberry Pi stores it as a normal integer.
+
+But inside the ADC, the data is actually:
+
+```
+011111111111
+```
+
+Your code:
+
+```python
+value = ((rx[0] & 0x0F) << 8) | rx[1]
+```
+
+is taking the two received bytes and rebuilding this:
+
+```
+0111 1111 1111
+```
+
+back into:
+
+```
+2047
+```
+
+So the process is:
+
+```
+Analog voltage
+      |
+      |
+      V
+ADC128S102 conversion
+
+2.5V
+
+      |
+      V
+
+Binary result
+
+0111 1111 1111
+
+      |
+      V
+
+SPI sends two bytes
+
+0111 1111 1111
+
+      |
+      V
+
+Python combines bytes
+
+      |
+      V
+
+Decimal value
+
+2047
+```
+
+This voltage → binary → SPI → Python conversion chain is the core idea behind every ADC system.
