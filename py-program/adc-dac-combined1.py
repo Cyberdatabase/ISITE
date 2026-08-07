@@ -48,7 +48,7 @@ try:
 
         write_dac(adc_value)
 
-        voltage = adc_value * 5.0 / 4095
+        voltage = adc_value * 5.0 / 4096
 
         print("ADC :", adc_value)
         print("DAC :", adc_value)
