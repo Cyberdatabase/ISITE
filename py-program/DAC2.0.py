@@ -34,7 +34,7 @@ try:
 
             write_dac(value)
 
-            voltage = value * 5.0 / 4095
+            voltage = value * 5.0 / 4096
 
             print("DAC Value :", value)
             print("Output Voltage : {:.3f} V".format(voltage))
