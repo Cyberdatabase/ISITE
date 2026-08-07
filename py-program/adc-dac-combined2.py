@@ -74,7 +74,7 @@ try:
 
         write_dac(dac_value)
 
-        dac_voltage = dac_value * 5.0 / 4095
+        dac_voltage = dac_value * 5.0 / 4096
 
         print("\n========== DAC Output ==========")
         print("Source Channel : IN0")
